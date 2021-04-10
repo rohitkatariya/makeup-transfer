@@ -71,6 +71,18 @@ class LandmarkGenerator:
         shape = self.predictor(self.frame_orig, detected_rect[0]) # 2nd argument is the face number. 0 because we want the first(largest face)
         landmarks = shape.parts()
         landmarks_points = [ (k.x,k.y) for k in landmarks]
+        
+        new_landmark_points = []
+        for landmark_point in landmarks_points:
+            this_landmark_point = list(landmark_point)
+            for i in range(2):
+                if this_landmark_point[i]<0:
+                    this_landmark_point[i] = 0
+                if this_landmark_point[i]>= self.frame_orig.shape[i]:
+                    this_landmark_point[i] = self.frame_orig.shape[i]-1
+            new_landmark_points.append(tuple(this_landmark_point))
+        landmarks_points = new_landmark_points
+
         # print(len(landmarks_points),"landmarks_points")
         self.landmarks = landmarks_points
         self.shape = shape
@@ -155,12 +167,12 @@ class LandmarkGenerator:
             
     def save_mesh_img(self):
         mesh_image = self.frame_orig.copy()
-        triangle_indices = json.load(open("./../data/mesh.json",'r'))
-        for (t_idx,tr_region) in triangle_indices:
+        
+        for (t_idx,tr_region) in self.triangle_indices:
             
             tr_pts = [self.landmarks[ t_idx[z] ] for z in range(3)]
                 
-            
+            # print(tr_region) 
             cv2.drawContours(mesh_image, np.array([tr_pts]), 0, self.color_idx[tr_region], -1)
             for i in range(3):
                 cv2.line(mesh_image, tr_pts[i], tr_pts[(i+1)%3], self.color_idx[4], 1)
@@ -173,6 +185,7 @@ class LandmarkGenerator:
             cv2.circle(mesh_image, this_point_coordinates, 2, this_color, self.thickness)
 
         cv2.imwrite(self.output_dir+'mesh_image_idx.jpg', mesh_image)
+    
     def __init__(self,predictor,input_image_path):
         self.output_dir = config.output_dir+input_image_path.split('/')[-1].split('.')[0]+"/"
         if os.path.isdir(self.output_dir)== False:
@@ -204,3 +217,4 @@ class LandmarkGenerator:
         
         self.create_landmarks_frame()
         self.createFaceMask()
+        self.triangle_indices = json.load(open("./../data/mesh.json",'r'))

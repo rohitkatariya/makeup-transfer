@@ -27,6 +27,7 @@ class Triangulation:
     def getMeshIndices(self):
         mesh_indices = []
         self.triangle_indices = []
+        print("computing regions")
         for t in self.triangles:
             tr_pts =[]
             tr_indices = []
@@ -51,7 +52,7 @@ class Triangulation:
         if region_counts[0]>0:
             region = 0
         elif region_counts[1]>0 :
-            region =1
+            region = 1
         else:
             region =2
         # print(region_counts, '->',region)
@@ -61,12 +62,9 @@ class Triangulation:
     def save_mesh_img(self):
         mesh_image = self.landmarks_obj.frame_orig.copy()
         for (t_idx,tr_region) in self.triangle_indices:
-            
             tr_pts = [self.landmarks_obj.landmarks[ t_idx[z] ] for z in range(3)]
-                
             for i in range(3):
                 cv2.line(mesh_image, tr_pts[i], tr_pts[(i+1)%3], (0, 0, 255), 1)
-            
         cv2.imwrite(self.landmarks_obj.output_dir+'mesh_image.jpg', mesh_image)
         # json.dumps()
         json.dump(self.triangle_indices, open(self.landmarks_obj.output_dir+'mesh.json', "w") , indent = 4)
