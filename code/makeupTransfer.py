@@ -17,7 +17,7 @@ from skimage.io import imread, imsave
 import random
 from imp import reload
 import Warping
-
+import LayerDecomposition
 # In[130]:
 
 
@@ -63,3 +63,4 @@ for input_image_path in list_images:
     dest_landmarkGenerator = LandmarkGenerator(shape_predictor,config.input_dir+input_image_path)
     rd_idx=0
     warp_obj = Warping.Warping(src_landmarkGenerator,dest_landmarkGenerator)
+    LayerDecomposition.LayerDecomposition(warp_obj)
