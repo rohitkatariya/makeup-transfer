@@ -38,7 +38,7 @@ class Triangulation:
                 tr_indices.append(this_pt_idx)
             tr_region = self.get_triangle_class(tr_indices)
             self.triangle_indices.append((tr_indices,tr_region))
-        self.save_mesh_img()
+        # self.save_mesh_img()
     
     def get_triangle_class(self,tr_indices):
         region_counts = [0,0,0]

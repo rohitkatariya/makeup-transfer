@@ -51,7 +51,7 @@ class LayerDecomposition:
         # Highlight and Shading Transfer
         final_image_lips = self.layer_recomposition(layers_destination_img['lips'])
         final_image_bg = self.layer_recomposition(layers_destination_img['background'])
-        cv2.imshow('final_image_other',cv2.medianBlur(final_image_other+final_image_lips+final_image_bg,3))
+        cv2.imshow('final_image_other',final_image_other+final_image_lips+final_image_bg)
         # print(warp_obj.orig_img)
         cv2.imshow('otig',warp_obj.orig_img)
         # pdb.set_trace()
