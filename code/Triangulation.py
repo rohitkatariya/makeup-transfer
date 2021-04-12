@@ -66,10 +66,14 @@ class Triangulation:
             for i in range(3):
                 cv2.line(mesh_image, tr_pts[i], tr_pts[(i+1)%3], (0, 0, 255), 1)
         cv2.imwrite(self.landmarks_obj.output_dir+'mesh_image.jpg', mesh_image)
-        # json.dumps()
+        # cv2.imshow(self.landmarks_obj.output_dir+'mesh_image.jpg', mesh_image)
+        # # json.dumps()
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows() 
         json.dump(self.triangle_indices, open(self.landmarks_obj.output_dir+'mesh.json', "w") , indent = 4)
 
     def __init__(self,landmarks_obj):
         self.landmarks_obj = landmarks_obj
         self.computeTriangles()
         self.getMeshIndices()
+        self.save_mesh_img()

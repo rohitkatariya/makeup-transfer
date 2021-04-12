@@ -21,7 +21,9 @@ import LayerDecomposition
 
 list_images = os.listdir(config.input_dir)
 print(list(enumerate(list_images)))
-list_images = [list_images[3]]
+# list_images = [list_images[4]]
+# list_images = ['XDOG_image.jpg']
+list_images = ['base.jpg']
 
 predictor_path = './../data/shape_predictor_81_face_landmarks.dat'
 shape_predictor = dlib.shape_predictor(predictor_path)
@@ -37,8 +39,8 @@ for input_image_path in list_images:
     print(input_image_path)
     src_landmarkGenerator = LandmarkGenerator(shape_predictor,config.input_dir+"example.jpg")
     dest_landmarkGenerator = LandmarkGenerator(shape_predictor,config.input_dir+input_image_path)
-    my_triangulation = Triangulation.Triangulation(dest_landmarkGenerator)
+    dest_triangulation = Triangulation.Triangulation(dest_landmarkGenerator)
     # my_landmarkGenerator.save_mesh_img()
     rd_idx=0
-    warp_obj = Warping.Warping(src_landmarkGenerator,dest_landmarkGenerator)
-    LayerDecomposition.LayerDecomposition(warp_obj)
+    warp_obj = Warping.Warping(src_landmarkGenerator,dest_landmarkGenerator,dest_triangulation.triangle_indices)
+    LayerDecomposition.LayerDecomposition(warp_obj,dest_landmarkGenerator)

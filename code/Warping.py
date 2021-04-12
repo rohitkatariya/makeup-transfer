@@ -26,6 +26,16 @@ class Warping:
         # cv2.destroyAllWindows() 
         return masked_for_warp_output
 
+    def getLayerBitmaskColor(this_color_img,thresh_type):
+        grayscale_image = cv2.cvtColor(this_color_img,cv2.COLOR_BGR2GRAY)
+        _,bitmask_other = cv2.threshold(grayscale_image,0,255,thresh_type) 
+        return bitmask_other
+    
+    def applyBitmaskColor(bitmask,img_color):
+        new_image = np.zeros(img_color.shape,dtype=np.uint8)
+        for i in range(3):
+            new_image[:,:,i]=cv2.bitwise_and(bitmask,img_color[:,:,i])
+        return new_image
     def warp_image(self):
         list_warped_images = [this_landmarks_obj.frame_orig.copy()  for this_landmarks_obj in self.list_landmarks_obj] 
         self.orig_img = self.list_landmarks_obj[1].frame_orig
@@ -33,7 +43,7 @@ class Warping:
         transferred_other = np.zeros(self.list_landmarks_obj[1].frame_orig.shape,np.uint8)
         transferred_lips = np.zeros(self.list_landmarks_obj[1].frame_orig.shape,np.uint8)
         mask_image = np.zeros(self.list_landmarks_obj[1].frame_orig.shape,np.uint8)
-        for this_triangle_indices,triangle_region in self.list_landmarks_obj[0].triangle_indices:
+        for this_triangle_indices,triangle_region in self.dest_triangle_indices:
             this_bounding_rect_list = []
             for idx_image in range(2):
                 this_landmark_obj = self.list_landmarks_obj[idx_image]
@@ -74,17 +84,57 @@ class Warping:
                 warped_triangle_added = cv2.add(transferred_background[start_y:start_y+h,start_x:start_x+w] , masked_warped_triangle)
                 transferred_background[start_y:start_y+h,start_x:start_x+w] = warped_triangle_added
 
-        cv2.imshow('mask_image1234',transferred_background)  
-        cv2.waitKey(0) 
-        cv2.destroyAllWindows() 
+        # cv2.imshow('mask_image1234',mask_image)  
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows() 
+        
+        # self.layers_transferred_other = {
+        #     'others':transferred_other,
+        #     'lips':transferred_lips
+        # }
 
-        self.layers_transferred_other = {
-            'other':transferred_other,
-            'lips':transferred_lips
+        bitmask_other = Warping.getLayerBitmaskColor(transferred_other,cv2.THRESH_BINARY)
+        bitmask_lips = Warping.getLayerBitmaskColor(transferred_lips,cv2.THRESH_BINARY) 
+        bitmask_background = Warping.getLayerBitmaskColor(transferred_background,cv2.THRESH_BINARY_INV) 
+        
+        _,bitmask_background_inv = cv2.threshold(bitmask_background,0,255,cv2.THRESH_BINARY_INV) 
+        bitmask_other = cv2.bitwise_and(bitmask_other,bitmask_background_inv)
+        sum_bitmasks = cv2.add(bitmask_background,bitmask_other)
+
+        _,sum_bitmasks_inv = cv2.threshold(sum_bitmasks,0,255,cv2.THRESH_BINARY_INV) 
+        bitmask_lips = cv2.bitwise_and(bitmask_lips,sum_bitmasks_inv)
+        sum_bitmasks = cv2.add(sum_bitmasks,bitmask_lips)
+        # pdb.set_trace()
+        # cv2.imshow('bitmask_lips',np.uint8(bitmask_lips))
+        # cv2.imshow('bitmask_other',np.uint8(bitmask_other))
+        # cv2.imshow('bitmask_background',np.uint8(bitmask_background))
+        # cv2.imshow('transfered_layer',np.uint8(self.transfered_layer))
+        
+        # # cv2.imshow('background_extracted',np.uint8(Warping.applyBitmaskColor(bitmask_background,self.list_landmarks_obj[1].frame_orig)))
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows()
+        
+        self.orig_image = self.list_landmarks_obj[1].frame_orig
+        self.transfered_image = mask_image
+        # bitmask_background
+
+
+        self.bitmasks = {
+            "background" : bitmask_background,
+            "others" : bitmask_other,
+            "lips" : bitmask_lips
         }
-
+        # background_extracted = Warping.applyBitmaskColor(bitmask_background,self.list_landmarks_obj[1].frame_orig) 
+        # other_extracted = Warping.applyBitmaskColor(bitmask_other,self.list_landmarks_obj[1].frame_orig) 
+        # lips_extracted = Warping.applyBitmaskColor(bitmask_lips,self.list_landmarks_obj[1].frame_orig) 
         
+        # cv2.imshow('background_extracted',np.uint8(background_extracted))
+        # cv2.imshow('other_extracted',np.uint8(other_extracted))
+        # cv2.imshow('lips_extracted',np.uint8(lips_extracted))
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows()
         
+         
         # transfered_image = cv2.medianBlur(transfered_image,3)
         # cv2.imshow('transferred_other',transferred_other)
         # cv2.imshow('transferred_lips',transferred_lips)
@@ -92,9 +142,9 @@ class Warping:
         # cv2.imshow('transferred_lips_b',cv2.medianBlur(transferred_lips,3))
         # face swaping 
         # mask_image_1_gray = cv2.cvtColor(bitmask_background,cv2.COLOR_BGR2GRAY)
-        _,bitmask_other = cv2.threshold(transferred_other,0,255,cv2.THRESH_BINARY)
-        _,bitmask_lips = cv2.threshold(transferred_lips,0,255,cv2.THRESH_BINARY)
-        _,bitmask_background = cv2.threshold(transferred_background,0,255,cv2.THRESH_BINARY_INV)
+        # _,bitmask_other = cv2.threshold(transferred_other,0,255,cv2.THRESH_BINARY) 
+        # _,bitmask_lips = cv2.threshold(transferred_lips,0,255,cv2.THRESH_BINARY)
+        # _,bitmask_background = cv2.threshold(transferred_background,0,255,cv2.THRESH_BINARY_INV)
         # bit_masked_image = cv2.bitwise_and(list_warped_images[1], list_warped_images[1], mask=bg)
         # transfered_image = cv2.add(bit_masked_image,bitmask_background)
         # transfered_image = cv2.medianBlur(transfered_image,3)
@@ -103,27 +153,23 @@ class Warping:
         # cv2.imshow('bitmask_lips',bitmask_lips)        
         # cv2.imshow('bitmask_background',bitmask_background)  
         # cv2.imshow('bitmask_other',bitmask_other)    
-
+        # background_extracted = cv2.bitwise_and(bitmask_background,self.list_landmarks_obj[1].frame_orig)
+        # # cv2.imshow('background_extracted',background_extracted)
+        # other_extracted = cv2.bitwise_and(bitmask_other,self.list_landmarks_obj[1].frame_orig)
+        # # cv2.imshow('other_extracted',other_extracted)
+        # lips_extracted = cv2.bitwise_and(bitmask_lips,self.list_landmarks_obj[1].frame_orig)
+        # # cv2.imshow('lips_extracted',lips_extracted)
         
-
-        background_extracted = cv2.bitwise_and(bitmask_background,self.list_landmarks_obj[1].frame_orig)
-        # cv2.imshow('background_extracted',background_extracted)
-
-        other_extracted = cv2.bitwise_and(bitmask_other,self.list_landmarks_obj[1].frame_orig)
-        # cv2.imshow('other_extracted',other_extracted)
-
-        lips_extracted = cv2.bitwise_and(bitmask_lips,self.list_landmarks_obj[1].frame_orig)
-        # cv2.imshow('lips_extracted',lips_extracted)
-        
-        self.original_layers = {
-            "background" : background_extracted,
-            "other" : other_extracted,
-            "lips" : lips_extracted
-        }
+        # self.original_layers = {
+        #     "background" : background_extracted,
+        #     "others" : other_extracted,
+        #     "lips" : lips_extracted
+        # }
 
             
-    def __init__(self, src_landmarks_obj,dest_landmarks_obj):
+    def __init__(self, src_landmarks_obj,dest_landmarks_obj,dest_triangle_indices):
         self.list_landmarks_obj = [src_landmarks_obj,dest_landmarks_obj]
+        self.dest_triangle_indices = dest_triangle_indices
         transfered_img = self.warp_image()
         image_name = dest_landmarks_obj.input_image_path.split('/')[-1].split('.')[0]
 

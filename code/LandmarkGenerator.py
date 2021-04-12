@@ -8,7 +8,7 @@ import random
 import cv2
 import config
 import json
-
+import pdb
 class LandmarkGenerator:
     
     def split_landmarks(self):
@@ -63,11 +63,13 @@ class LandmarkGenerator:
             cv2.circle(landmarks_frame, this_point_coordinates, 2, this_color, self.thickness)
         self.landmarks_frame = landmarks_frame
         cv2.imwrite(self.output_dir+'landmarks.jpg', landmarks_frame)
+        # cv2.imshow('landmarks.jpg', landmarks_frame)
                 
     def get_landmarks(self):
         
         detected_rect = self.detector(self.frame_orig, 0)
         # print(detected_rect)
+        # this_read_image=cv2.imread("./../data/input/base.jpg")
         shape = self.predictor(self.frame_orig, detected_rect[0]) # 2nd argument is the face number. 0 because we want the first(largest face)
         landmarks = shape.parts()
         landmarks_points = [ (k.x,k.y) for k in landmarks]
@@ -78,8 +80,10 @@ class LandmarkGenerator:
             for i in range(2):
                 if this_landmark_point[i]<0:
                     this_landmark_point[i] = 0
-                if this_landmark_point[i]>= self.frame_orig.shape[i]:
-                    this_landmark_point[i] = self.frame_orig.shape[i]-1
+                if this_landmark_point[i]>= self.frame_orig.shape[1-i]: # x and y are reversed of matrices index. i.e. x corrresponds to idex 1
+                    # print(i, this_landmark_point,self.frame_orig.shape)
+                    # pdb.set_trace()
+                    this_landmark_point[i] = self.frame_orig.shape[1-i]-1
             new_landmark_points.append(tuple(this_landmark_point))
         landmarks_points = new_landmark_points
 
@@ -115,6 +119,23 @@ class LandmarkGenerator:
         this_hull_points = np.array(landmark_list) #np.array([ (z.x,z.y) for z in landmark_list])
         this_hull = cv2.convexHull(this_hull_points)
         return this_hull
+    
+    def createAllMask(self):
+        masks = {}
+        for landmark_class in self.landmarks_list:
+            mask_frame = np.zeros( self.frame_orig_gray.shape)
+            landmark_list = self.landmarks_dict[landmark_class]
+            
+            this_hull = self.get_convex_hull(landmark_list)
+            cv2.fillConvexPoly(mask_frame, this_hull, 1)
+            masks[landmark_class] = mask_frame
+        masks['others'] = masks['others'] - masks['lips'] - masks['brows_l'] - masks['brows_r'] - masks['eyes_l'] - masks['eyes_r']
+        masks['lips'] = masks['lips'] - masks['mouth']
+        # for mask_name,mask_this in masks.items():
+        #     cv2.imshow(mask_name,mask_this)  
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows() 
+        self.masks_for_beta = masks
 
     def createFaceMask(self):
         mask_frame = np.zeros_like( self.frame_orig)
@@ -125,7 +146,7 @@ class LandmarkGenerator:
             # cv2.polylines(mask_frame, [this_hull], True, self.get_point_class_color(landmark_class), 3)
             cv2.fillConvexPoly(mask_frame, this_hull, self.get_point_class_color(landmark_class))
         cv2.imwrite(self.output_dir+'mask_frame.jpg', mask_frame)
-        
+        # cv2.imshow('mask_frame.jpg', mask_frame)
         #create region masks
         
         region_masks= []
@@ -165,10 +186,10 @@ class LandmarkGenerator:
             face_image_this = cv2.bitwise_and(self.frame_orig, self.frame_orig, mask=this_mask_frame)
             cv2.imwrite(self.output_dir+'region_frame_{}.jpg'.format(region_idx), face_image_this)
             
-    def save_mesh_img(self):
+    def save_mesh_img(self,triangle_indices):
         mesh_image = self.frame_orig.copy()
         
-        for (t_idx,tr_region) in self.triangle_indices:
+        for (t_idx,tr_region) in triangle_indices:
             
             tr_pts = [self.landmarks[ t_idx[z] ] for z in range(3)]
                 
@@ -216,5 +237,7 @@ class LandmarkGenerator:
         self.split_landmarks()
         
         self.create_landmarks_frame()
+        
+        self.createAllMask()
         self.createFaceMask()
-        self.triangle_indices = json.load(open("./../data/mesh.json",'r'))
+        # self.triangle_indices = json.load(open("./../data/mesh.json",'r'))
