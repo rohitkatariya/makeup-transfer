@@ -22,8 +22,16 @@ import LayerDecomposition
 list_images = os.listdir(config.input_dir)
 print(list(enumerate(list_images)))
 # list_images = [list_images[4]]
-# list_images = ['XDOG_image.jpg']
-list_images = ['base.jpg']
+list_images = ['XDOG_image.jpg']
+# list_images = ['h.jpg']
+# list_images = ['color_ja.jpg']
+# list_images = ['m.jpg']
+# list_images = ['mom2.jpg']
+# list_images = ['openmouth.jpg']
+# list_images = ['tiger.jpg']
+# list_images = ['XDOG_b_t_image.jpg']
+list_images = ['XDOG_b_image.jpg']
+# list_images = ['base.jpg']
 
 predictor_path = './../data/shape_predictor_81_face_landmarks.dat'
 shape_predictor = dlib.shape_predictor(predictor_path)

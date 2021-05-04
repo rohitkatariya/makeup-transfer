@@ -34,8 +34,8 @@ class LayerDecomposition:
         # pdb.set_trace()
         # grad_Es = cv2.Sobel(dict_layers_example['structure_layer'],cv2.CV_32F ,0,1,ksize=5) + cv2.Sobel(dict_layers_example['structure_layer'],cv2.CV_32F ,1,0,ksize=5)  # change this to gradient + laplacian
         # grad_Is = cv2.Sobel(dict_layers_subject['structure_layer'],cv2.CV_32F, 0,1,ksize=5)  + cv2.Sobel(dict_layers_subject['structure_layer'],cv2.CV_32F, 1,0,ksize=5)
-        grad_Es = cv2.laplacian(dict_layers_example['structure_layer'],cv2.CV_32F )
-        grad_Is = cv2.laplacian(dict_layers_subject['structure_layer'],cv2.CV_32F)
+        grad_Es = cv2.Laplacian(dict_layers_example['structure_layer'],cv2.CV_32F )
+        grad_Is = cv2.Laplacian(dict_layers_subject['structure_layer'],cv2.CV_32F)
         gauss_Is = cv2.GaussianBlur(dict_layers_subject['structure_layer'], (5,5), 1.5 )
         size = grad_Is.shape
         beta = self.dest_landmarkGenerator.masks_for_beta['others']
@@ -53,6 +53,21 @@ class LayerDecomposition:
         # Layer Decomposition
         layers_example_img = self.layer_decomposition(warp_obj.transfered_image)
         layers_destination_img = self.layer_decomposition(warp_obj.orig_image) 
+        
+        
+        for k,this_lyr in layers_example_img.items():
+            if this_lyr.shape[-1] !=2:
+                # pdb.set_trace()
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"eg_"+k+".jpg",this_lyr.astype(np.uint8))
+            else:
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"eg_0"+k+".jpg",this_lyr[:,:,0].astype(np.uint8))
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"eg_1"+k+".jpg",this_lyr[:,:,1].astype(np.uint8))
+        for k,this_lyr in layers_destination_img.items():
+            if this_lyr.shape[-1] !=2:
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"dest_"+k+".jpg",this_lyr.astype(np.uint8))
+            else:
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"dest_0"+k+".jpg",this_lyr[:,:,0].astype(np.uint8))
+                cv2.imwrite(self.dest_landmarkGenerator.output_dir+"dest_1"+k+".jpg",this_lyr[:,:,1].astype(np.uint8))
         p = [layers_example_img,layers_destination_img]
         
         # Skin Detail Transfer
@@ -64,7 +79,7 @@ class LayerDecomposition:
         lambda_color = self.lambda_color
         other_skin_color_final = lambda_color * layers_example_img['color_layer'] + (1-lambda_color) * layers_destination_img['color_layer']
 
-        # Highlight and Shading Transfer
+        # Highlight and Shading Transfer #CAUTION
         Rs_others = layers_destination_img['structure_layer']
         # Rs_others = self.apply_layer_highlights_transfer(layers_example_img,layers_destination_img)
         
@@ -148,8 +163,8 @@ class LayerDecomposition:
         lips_Result_full[y:y+h, x:x+w,:] = lips_Result_BGR#[y:y+h, x:x+w,:]
         # cv2.imshow( 'mask_lips_cropped' ,mask_lips_cropped)
         # cv2.imshow( 'lips_Result_full' ,lips_Result_full)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         # pdb.set_trace()
         # bounding_rect  = self.dest_landmarkGenerator.
         return lips_Result_full
@@ -191,7 +206,7 @@ class LayerDecomposition:
         # lips_Result = np.zeros_like(transfered_image_lips_lab)
         c_sq =  config.gaussian_lips_c_sq
         a = config.gaussian_lips_a
-        dist_window = 5
+        dist_window = 2
         for p_i in range(lips_Result.shape[0]):
             for p_j in range(lips_Result.shape[1]):
                 if mask_lips[p_i][p_j]==0:
@@ -215,14 +230,14 @@ class LayerDecomposition:
                     print("Not found lip point")
                 lips_Result[p_i,p_j,:] = transfered_image_lips_lab[best_point[0],best_point[1],:] 
         # pdb.set_trace()
-
+        # LIPS HIST CAUTION
         # lips_Result[:,:,0] = match_histograms(lips_Result[:,:,0], orig_image_lips_lab[:,:,0], multichannel=False)
 
         lips_Result_BGR = cv2.cvtColor(lips_Result, cv2.COLOR_Lab2BGR)        
         # lips_Result_full = orig_image.copy()
         # lips_Result_full[y:y+h, x:x+w,:] = lips_Result_BGR#[y:y+h, x:x+w,:]
         # cv2.imshow( 'mask_lips_cropped' ,mask_lips_cropped)
-        # cv2.imshow( 'lips_Result_full' ,lips_Result_full)
+        # cv2.imshow( 'lips_Result_BGR' ,lips_Result_BGR)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         # pdb.set_trace()
@@ -266,8 +281,13 @@ class LayerDecomposition:
         # cv2.destroyAllWindows()
         # Lip Makeup 
         image_lips_unmasked = self.lip_makeup_transfer()
+        # cv2.imshow( 'image_lips_unmasked' ,image_lips_unmasked)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         lips_image_masked = Warping.applyBitmaskColor(self.warp_obj.bitmasks['lips'],image_lips_unmasked)
-        
+        # cv2.imshow('lips_image_masked',lips_image_masked)
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows()
 
         # final_image_lips = self.layer_recomposition(layers_destination_img['lips'])
         # background
@@ -292,9 +312,10 @@ class LayerDecomposition:
         cv2.imwrite(self.dest_landmarkGenerator.output_dir+"combined_layer.jpg",combined_layer)
         cv2.imwrite(self.dest_landmarkGenerator.output_dir+"transfered_image.jpg",self.warp_obj.transfered_image)
         
-
-        # cv2.waitKey(0) 
-        # cv2.destroyAllWindows()
+        cv2.imshow('combined_layer',combined_layer)
+        cv2.imshow('transfered_image',self.warp_obj.transfered_image)
+        cv2.waitKey(0) 
+        cv2.destroyAllWindows()
         # print(Rd)
 
 
